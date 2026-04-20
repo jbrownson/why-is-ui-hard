@@ -1,6 +1,7 @@
 import hljs from "highlight.js/lib/core";
 import typescript from "highlight.js/lib/languages/typescript";
 import "highlight.js/styles/atom-one-light.css";
+import "./style.css";
 
 import { sampleDocument } from "./model.ts";
 import { mountNaive } from "./naive.ts";
