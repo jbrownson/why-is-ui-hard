@@ -29,6 +29,30 @@
   .panel h2 { margin: 0 0 4px; font-size: 14px; }
   .panel .desc { font-size: 12px; color: #777; margin-bottom: 12px; }
   .panel .stage { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid #ddd; }
+  .tab {
+    font: inherit;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 4px 12px;
+    cursor: pointer;
+    color: #777;
+    margin-bottom: -1px;
+  }
+  .tab.active { color: #222; border-bottom-color: #007aff; }
+  .code {
+    margin: 0;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.45;
+    background: #f7f7f7;
+    border-radius: 4px;
+    padding: 12px;
+    overflow: auto;
+    max-height: 480px;
+    white-space: pre;
+  }
 
   .row { display: flex; align-items: baseline; gap: 4px; }
   .label {
@@ -64,6 +88,9 @@
     width: 12px;
     display: inline-block;
   }
+  .toggle::after { content: "▾"; }
+  .toggle.collapsed::after { content: "▸"; }
+  .hidden { display: none; }
   .add-edge {
     font: inherit;
     background: transparent;
@@ -115,7 +142,12 @@
   <div class="panel" id="naive-panel">
     <h2>Naive (full rebuild on every change)</h2>
     <div class="desc">Every model change tears down the view tree and rebuilds it. Cursor and expansion state never survive.</div>
-    <div class="stage" id="naive-stage"></div>
+    <div class="tabs">
+      <button class="tab active" data-show="demo">Demo</button>
+      <button class="tab" data-show="code">Code</button>
+    </div>
+    <div class="stage" data-pane="demo" id="naive-stage"></div>
+    <pre class="code hidden" data-pane="code" id="naive-code"></pre>
   </div>
 </div>
 

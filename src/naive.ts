@@ -105,16 +105,13 @@ function project(
   });
 
   const toggle = document.createElement("span");
-  toggle.className = "toggle";
-  toggle.textContent = expanded ? "▾" : "▸";
+  toggle.className = expanded ? "toggle" : "toggle collapsed";
 
   const body = document.createElement("div");
-  body.className = "indent";
-  body.style.display = expanded ? "" : "none";
+  body.className = expanded ? "indent" : "indent hidden";
 
-  let built = false;
   const ensureBuilt = (): void => {
-    if (built) return;
+    if (body.children.length > 0) return;
     [...edges]
       .sort(([a], [b]) => a.localeCompare(b))
       .forEach(([edge, child]) => {
@@ -130,15 +127,14 @@ function project(
         );
       });
     body.appendChild(renderAddEdge((edgeName) => ops.commit(value, edgeName, "")));
-    built = true;
   };
   if (expanded) ensureBuilt();
 
   toggle.addEventListener("click", () => {
-    const willExpand = body.style.display === "none";
+    const willExpand = body.classList.contains("hidden");
     if (willExpand) ensureBuilt();
-    body.style.display = willExpand ? "" : "none";
-    toggle.textContent = willExpand ? "▾" : "▸";
+    body.classList.toggle("hidden");
+    toggle.classList.toggle("collapsed");
   });
 
   return { kind: "node", nameInput, toggle, body };
@@ -209,7 +205,7 @@ function addEdgeBelow(row: HTMLElement, onAdd: (edgeName: string) => void): HTML
   button.textContent = "+";
 
   button.addEventListener("click", () => {
-    button.style.display = "none";
+    button.classList.add("hidden");
 
     const indent = document.createElement("div");
     indent.className = "indent";
@@ -218,16 +214,10 @@ function addEdgeBelow(row: HTMLElement, onAdd: (edgeName: string) => void): HTML
     input.placeholder = "edge name";
     indent.appendChild(input);
 
-    const reset = (): void => {
+    bindAdderInput(input, onAdd, () => {
       indent.remove();
-      button.style.display = "";
-    };
-
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && input.value.trim()) onAdd(input.value.trim());
-      else if (e.key === "Escape") reset();
+      button.classList.remove("hidden");
     });
-    input.addEventListener("blur", reset);
 
     row.after(indent);
     input.focus();
@@ -242,28 +232,32 @@ function edgeAdder(onAdd: (edgeName: string) => void): HTMLElement[] {
   button.textContent = "+";
 
   const input = document.createElement("input");
-  input.className = "label-input";
+  input.className = "label-input hidden";
   input.placeholder = "edge name";
-  input.style.display = "none";
-
-  const reset = (): void => {
-    input.value = "";
-    input.style.display = "none";
-    button.style.display = "";
-  };
 
   button.addEventListener("click", () => {
-    button.style.display = "none";
-    input.style.display = "";
+    button.classList.add("hidden");
+    input.classList.remove("hidden");
     input.focus();
   });
 
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && input.value.trim()) onAdd(input.value.trim());
-    else if (e.key === "Escape") reset();
+  bindAdderInput(input, onAdd, () => {
+    input.value = "";
+    input.classList.add("hidden");
+    button.classList.remove("hidden");
   });
 
-  input.addEventListener("blur", reset);
-
   return [button, input];
+}
+
+function bindAdderInput(
+  input: HTMLInputElement,
+  onCommit: (edgeName: string) => void,
+  onCancel: () => void,
+): void {
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && input.value.trim()) onCommit(input.value.trim());
+    else if (e.key === "Escape") onCancel();
+  });
+  input.addEventListener("blur", onCancel);
 }
