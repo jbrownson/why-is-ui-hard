@@ -62,33 +62,14 @@ export function mountNaive(doc: Document): HTMLElement {
 
   const rerender = (): void => {
     host.innerHTML = "";
-    const view = composeRoot(project(doc.graph, doc.root, new Set(), ops, null), ops, doc.root);
+    const projected = project(doc.graph, doc.root, new Set(), ops, null);
+    const view = renderProjected(projected, [], [], (edgeName) => ops.commit(doc.root, edgeName, ""));
     view.classList.add("rebuild-flash");
     host.appendChild(view);
   };
 
   rerender();
   return host;
-}
-
-function composeRoot(p: Projected, ops: Ops, rootName: string): HTMLElement {
-  if (p.kind === "leaf") {
-    const wrapper = document.createElement("div");
-    wrapper.className = "row";
-    wrapper.appendChild(p.input);
-    for (const el of edgeAdder((edgeName) => ops.commit(rootName, edgeName, ""))) {
-      wrapper.appendChild(el);
-    }
-    return wrapper;
-  }
-  const view = document.createElement("div");
-  const header = document.createElement("div");
-  header.className = "row";
-  header.appendChild(p.nameInput);
-  header.appendChild(p.toggle);
-  view.appendChild(header);
-  view.appendChild(p.body);
-  return view;
 }
 
 // MARK: project — walk the graph, decide what to render
@@ -153,18 +134,40 @@ function project(
   };
   if (expanded) ensureBuilt();
 
-  let currentExpanded = expanded;
   toggle.addEventListener("click", () => {
-    currentExpanded = !currentExpanded;
-    if (currentExpanded) ensureBuilt();
-    body.style.display = currentExpanded ? "" : "none";
-    toggle.textContent = currentExpanded ? "▾" : "▸";
+    const willExpand = body.style.display === "none";
+    if (willExpand) ensureBuilt();
+    body.style.display = willExpand ? "" : "none";
+    toggle.textContent = willExpand ? "▾" : "▸";
   });
 
   return { kind: "node", nameInput, toggle, body };
 }
 
 // MARK: render — pure DOM construction
+
+function renderProjected(
+  p: Projected,
+  prefix: HTMLElement[],
+  suffix: HTMLElement[],
+  onAddEdge: (edgeName: string) => void,
+): HTMLElement {
+  const row = document.createElement("div");
+  row.className = "row";
+  row.append(...prefix);
+
+  if (p.kind === "leaf") {
+    row.append(p.input, ...suffix, addEdgeBelow(row, onAddEdge));
+    return row;
+  }
+
+  row.append(p.nameInput, p.toggle, ...suffix);
+
+  const wrapper = document.createElement("div");
+  wrapper.appendChild(row);
+  wrapper.appendChild(p.body);
+  return wrapper;
+}
 
 function renderEdge(
   label: string,
@@ -190,32 +193,13 @@ function renderEdge(
   deleteBtn.textContent = "×";
   deleteBtn.addEventListener("click", onDelete);
 
-  const row = document.createElement("div");
-  row.className = "row";
-  row.appendChild(labelEl);
-  row.appendChild(arrow);
-
-  if (childP.kind === "leaf") {
-    row.appendChild(childP.input);
-    row.appendChild(deleteBtn);
-    row.appendChild(addEdgeBelow(row, onAddEdgeToLeaf));
-    return row;
-  }
-
-  row.appendChild(childP.nameInput);
-  row.appendChild(childP.toggle);
-  row.appendChild(deleteBtn);
-
-  const wrapper = document.createElement("div");
-  wrapper.appendChild(row);
-  wrapper.appendChild(childP.body);
-  return wrapper;
+  return renderProjected(childP, [labelEl, arrow], [deleteBtn], onAddEdgeToLeaf);
 }
 
 function renderAddEdge(onAdd: (edgeName: string) => void): HTMLElement {
   const row = document.createElement("div");
   row.className = "row";
-  for (const el of edgeAdder(onAdd)) row.appendChild(el);
+  row.append(...edgeAdder(onAdd));
   return row;
 }
 
